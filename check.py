@@ -1,11 +1,13 @@
 import requests
 from requests_toolbelt.multipart.encoder import MultipartEncoder
+import os
 
 def is_xml_correct(input_filename):
+    print("Sprawdzam", input_filename)
     request_url = "https://e-mikrofirma.mf.gov.pl/jpk-client/api/Jpk/Upload"
     mp_encoder = MultipartEncoder(
         fields={
-            'jpk': (input_filename, open(input_filename, 'rb'), 'text/xml')
+            'jpk': (os.path.basename(input_filename), open(input_filename, 'rb'), 'text/xml')
         }
     )
     r = requests.post(
