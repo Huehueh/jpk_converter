@@ -1,66 +1,54 @@
 from xml.etree import ElementTree
-from xml.etree.ElementTree import QName, Element, SubElement, register_namespace
-import re
+from xml.etree.ElementTree import Element, SubElement
+from utils import getTnsaTag, findTnsaElementWithTag, createTnsaSubElement, changeTagOsFizToEtd, registerNamespaces
+import codecs
 
-tags = {'tnsa': 'http://crd.gov.pl/wzor/2020/05/08/9394/',
-        'etd': 'http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2020/03/11/eD/DefinicjeTypy/'}
-
-def getTnsaElementWithTag(tag : str, document : Element):
-    tnsa_tag = str(QName(tags['tnsa'], tag))
-    list = document.findall(f'.//{tnsa_tag}')
-    if len(list) == 0:
-        return None
-    return list[0]
-
-def getTnsaTag(text : str):
-    return str(QName(tags['tnsa'], text))
-
-def updateOsobaFizyczna(document : Element):
-    reps = {tags['tnsa']: tags['etd']}
-    names_to_change = ['NIP', 'ImiePierwsze', 'Nazwisko', 'DataUrodzenia']
-    tags_to_change = [f"{{{tags['tnsa']}}}{name}" for name in names_to_change]
-    find_replacement = lambda m : reps[m.group(1)]
-    regex = r'({})'.format(r'|'.join(re.escape(w) for w in reps))
-
-    os_fiz = getTnsaElementWithTag('OsobaFizyczna', document)
+def updateOsobaFizyczna(document : Element) -> bool:
+    os_fiz = findTnsaElementWithTag('OsobaFizyczna', document)
     if os_fiz is None:
         print("W dokumencie nie ma pola 'Osoba fizyczna'")
+        return False
+
+    names_to_change = ['NIP', 'ImiePierwsze', 'Nazwisko', 'DataUrodzenia']
+    tags_to_change = [getTnsaTag(name, True) for name in names_to_change]
 
     for element in os_fiz:
         if element.tag in tags_to_change:
-            print(f"Zmieniam {element.tag}")
-            element.tag = re.sub(regex, find_replacement, element.tag)
+            # print(f"Zmieniam {element.tag} na", end=' ')
+            element.tag = changeTagOsFizToEtd(element.tag)
+            # print(element.tag)
+    return True
 
-def createTnsaSubElement(text : str, parent : Element):
-    tag = str(QName(tags['tnsa'], text))
-    new_element = SubElement(parent, tag)
-    new_element.text = "0"
-
-def updateZakupySprzedaze(document : Element):
+def updateZakupySprzedaze(document : Element, os_fiz : bool):
     options = {'SprzedazCtrl' : ['LiczbaWierszySprzedazy', 'PodatekNalezny'],
                'ZakupCtrl' : ['LiczbaWierszyZakupow', 'PodatekNaliczony']}
 
     section = 'Ewidencja'
-    pole_ewidencja = getTnsaElementWithTag(section, document)
+
+    pole_ewidencja = findTnsaElementWithTag(section, document)
+    if pole_ewidencja is None:
+        pole_ewidencja = createTnsaSubElement(section, os_fiz, document)
     for option in options.keys():
-        element = getTnsaElementWithTag(option, document)
-        if element == None:
-            tag = getTnsaTag(option)
-            print(f"Dodaję pole {tag} w polu Ewidencja")
+        element = findTnsaElementWithTag(option, document)
+        if element is None:
+            tag = getTnsaTag(option, os_fiz)
+            # print(f"Dodaję pole {tag} w polu Ewidencja")
             new_element = SubElement(pole_ewidencja, tag)
             for subelem_title in options[option]:
-                createTnsaSubElement(subelem_title, new_element)
+                subelem = createTnsaSubElement(subelem_title, os_fiz, new_element)
+                subelem.text = "0"
+
+def saveFile(root: Element, output_filename : str):
+    with open(output_filename, 'wb') as output_file:
+        tree = ElementTree.ElementTree(root)
+        tree.write(output_file, xml_declaration=False, encoding='utf-8')
+        print(f"Wynik konwersji zapisano do {output_filename}")
 
 def convert_file(input_filename : str, output_filename : str):
-    for key, value in tags.items():
-        register_namespace(key, value)
+    registerNamespaces()
 
     document = ElementTree.parse(input_filename)
     root = document.getroot()
-    updateOsobaFizyczna(root)
-    updateZakupySprzedaze(root)
-
-    with open(output_filename, 'w') as output_file:
-        output_file.write('<?xml version="1.0" encoding="utf-8"?>\n')
-        output_file.write(ElementTree.tostring(root, encoding='utf-8').decode())
-        print(f"Wynik konwersji zapisano do {output_filename}")
+    os_fiz = updateOsobaFizyczna(root)
+    updateZakupySprzedaze(root, os_fiz)
+    saveFile(root, output_filename)
