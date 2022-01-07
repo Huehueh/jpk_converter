@@ -5,12 +5,12 @@ from convert import convert_file
 import argparse, os, sys
 from PyQt5.QtWidgets import *
 
+
 class MainDialog(QWidget):
     def __init__(self, parent=None):
         super(MainDialog, self).__init__(parent)
 
         self.filenames = []
-
 
         layout = QVBoxLayout()
 
@@ -26,8 +26,9 @@ class MainDialog(QWidget):
 
     def get_converted_name(self, name):
         elements = list(os.path.splitext(name))
-        elements.insert(len(elements)-1, "converted")
-        return ".".join(elements)
+        print(elements)
+        elements.insert(len(elements) - 1, ".converted")
+        return "".join(elements)
 
     def convert_and_check_xml(self, input_file: str):
         output_file = self.get_converted_name(input_file)
@@ -37,7 +38,11 @@ class MainDialog(QWidget):
         if good == None:
             self.message.setText(f"Nie można sprawdzić poprawności pliku {input_file}!")
         else:
-             self.message.setText(f"Wygenerowano poprawny {output_file}!" if good else f"{output_file} niepoprawny:(")
+            self.message.setText(
+                f"Wygenerowano poprawny {output_file}!"
+                if good
+                else f"{output_file} niepoprawny:("
+            )
 
     def getfiles(self):
         dlg = QFileDialog()
