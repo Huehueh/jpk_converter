@@ -1,3 +1,4 @@
 requests
 requests_toolbelt
 auto-py-to-exe
+pyqt5

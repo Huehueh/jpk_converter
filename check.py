@@ -18,6 +18,12 @@ def is_xml_correct(input_filename):
     if r.status_code != 200:
         return None
 
+
     errors_list = r.json()[0]['validationErrors']
+    print("Errors", errors_list)
     # print(errors_list)
     return (len(errors_list) == 0)
+
+
+
+is_xml_correct('TEST/CS_11_21.XML')
