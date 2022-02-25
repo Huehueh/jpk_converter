@@ -37,9 +37,11 @@ class NamespaceHelper:
     def findTnsaElementWithTag(self, tag : str, document : Element) -> Element:
         for option in [True, False]:
             tnsa_tag = self.getTnsaTag(tag, option)
-            print(f"findTnsaElementWithTag {tnsa_tag}")
+            print(f"Szukam taga {tnsa_tag}")
             list = document.findall(f'.//{tnsa_tag}')
-            if len(list) != 0:
+            print(list, "gllugosc", len(list))
+            if len(list) > 0:
+                print("do zwrotu", list[0])
                 return list[0]
         return None
 
@@ -57,7 +59,7 @@ class NamespaceHelper:
         replacement = {tags['os_fiz']: self.tags['etd']}   
         find_replacement = lambda m: replacement[m.group(1)]
         regex = r'({})'.format(r'|'.join(re.escape(w) for w in replacement))
-        return re.sub(regex, find_replacement, tag)
+        return re.sub(regex, find_replacement, self.tag)
 
 
 def replace(replacement_dict: dict, tag: str):

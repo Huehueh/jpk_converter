@@ -1,8 +1,8 @@
-import imp
+import os
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
-from namespace import NamespaceHelper
-import os
+from namespace import NamespaceHelper, tags, tags_v2, tags_v2k
+from upgrader import upgradeTo2022
 
 
 def updateOsobaFizyczna(helper: NamespaceHelper, document : Element) -> bool:
@@ -40,29 +40,14 @@ def updateZakupySprzedaze(helper: NamespaceHelper, document : Element, os_fiz : 
                 subelem.text = "0"
 
 def updateVersionIfNeeded(helper: NamespaceHelper, document: Element):
-    pole_naglowek = helper.findTnsaElementWithTag('Naglowek', document)
-    print('huehue', document)
     rok = helper.findTnsaElementWithTag('Rok', document).text
     print('Rok', rok)
     if int(rok) < 2022:
+        print("Konwersja do wersji 2022 niepotrzebna")
         return False
-    # zmiana wersji 
-    pole_kod_formularza = helper.findTnsaElementWithTag('KodFormularza', document)
-    print(pole_kod_formularza.attrib)
-    from upgrader import upgradeElement
-    upgradeElement(pole_kod_formularza)
-    
-    pole_kod_form_dekl =  helper.findTnsaElementWithTag('KodFormularzaDekl', document)
-    if pole_kod_form_dekl:
-        upgradeElement(pole_kod_form_dekl)
 
-    pole_wariant_from =  helper.findTnsaElementWithTag('WariantFormularzaDekl', document)
-    if pole_wariant_from:
-        upgradeElement(pole_wariant_from)
-
-    pole_wariant =  helper.findTnsaElementWithTag('WariantFormularza', document)
-    upgradeElement(pole_wariant)
-    # zmiana namespace - w innym miejscu
+    upgradeTo2022(document, helper)
+    # zmiana namespace -> w innym miejscu
     return True
 
 def saveFile(root: Element, output_filename : str):
@@ -75,8 +60,7 @@ def saveFile(root: Element, output_filename : str):
 
 def get_converted_name(name):
     elements = list(os.path.splitext(name))
-    print(elements)
-    elements.insert(len(elements) - 1, "_aaa_converted")
+    elements.insert(len(elements) - 1, "_converted")
     return "".join(elements)
 
 def convert_and_check_xml(input_file: str):
@@ -87,10 +71,16 @@ def convert_and_check_xml(input_file: str):
     # tymczasem:
     return True
 
+
+
 def convert_and_save_file(input_filename : str, output_filename : str):
-    document = ElementTree.parse(input_filename)
+    try:
+        document = ElementTree.parse(input_filename)
+    except ElementTree.ParseError as e:
+        raise ConversionException from e
     root = document.getroot()
     helper = NamespaceHelper()
+
 
     os_fiz = updateOsobaFizyczna(helper, root)
     updateZakupySprzedaze(helper, root, os_fiz)
@@ -105,7 +95,7 @@ def convert_and_save_file(input_filename : str, output_filename : str):
         saveFile(root, output_filename)
     print("OUTPUT", output_filename)
 
-from namespace import tags, tags_v2, tags_v2k
+
 
 def upgradeNamespace(input_xml, output_xml):
     with open(input_xml, "rb") as infile, open(output_xml, "wb") as outfile:
@@ -116,3 +106,7 @@ def upgradeNamespace(input_xml, output_xml):
             else:
                 data = data.replace(str.encode(tags[key]), str.encode(tags_v2[key]))
         outfile.write(data)
+
+
+class ConversionException(Exception):
+    pass

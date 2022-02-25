@@ -1,6 +1,7 @@
+from xdrlib import ConversionError
 from PyQt5.QtWidgets import *
 
-from convert import convert_and_check_xml
+from convert import ConversionException, convert_and_check_xml
 
 
 class MainDialog(QWidget):
@@ -12,7 +13,7 @@ class MainDialog(QWidget):
         layout = QVBoxLayout()
 
         self.btn = QPushButton("Wybierz pliki")
-        self.btn.clicked.connect(self.getfiles)
+        self.btn.clicked.connect(self.selectXMLFilesToConvert)
         layout.addWidget(self.btn)
 
         self.messageTextEdit = QTextEdit()
@@ -22,26 +23,32 @@ class MainDialog(QWidget):
         self.setWindowTitle("kinole demo")
     
     def displayMessage(self, message: str):
-        prev = self.messageTextEdit.setText(message)
-        #TODO: append text
+        text = self.messageTextEdit.toPlainText()
+        text += message
+        self.messageTextEdit.setText(text)
 
-    def process_file(self, input_file: str):
+    def convertXMLFile(self, input_file: str):
         self.displayMessage(f"Konwersja pliku {input_file}...")
-        ok = convert_and_check_xml(input_file=input_file)
-        if ok == None:
+        try:
+            ok = convert_and_check_xml(input_file=input_file)
+        except ConversionException:
+            self.displayMessage("Nie można przekonwertować pliku!")
+            return
+
+        if not ok:
             self.displayMessage(f"Nie można sprawdzić poprawności pliku!")
         else:
             self.displayMessage(
-                "Wygenerowano poprawny plik!"
+                "Konwersja się udała!"
                 if ok
                 else "Plik niepoprawny:("
             )
 
-    def getfiles(self):
+    def selectXMLFilesToConvert(self):
         dlg = QFileDialog()
         dlg.setFileMode(QFileDialog.ExistingFiles)
         # dlg.setFilter("XML files (*.xml)")
         if dlg.exec_():
             filenames = dlg.selectedFiles()
             for file in filenames:
-                self.process_file(file)
+                self.convertXMLFile(file)
