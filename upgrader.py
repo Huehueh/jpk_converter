@@ -10,24 +10,28 @@ WERSJA_SCHEMY = "wersjaSchemy"
 JPK_V7M = "JPK_V7M"
 JPK_V7K = "JPK_V7K"
 
+def upgradeV7K(kod_form, kod_form_dekl, wariant_form):
+    kod_form.attrib[KOD_SYSTEMOWY] = "JPK_V7K (2)"
+    kod_form_dekl.attrib[KOD_SYSTEMOWY] = "VAT-7 (16)"
+    kod_form_dekl.attrib[WERSJA_SCHEMY] = "1-0E"
+    wariant_form.text = '16'
+
+def upgradeV7M(pole_kod_form, pole_kod_form_dekl, pole_wariant_form):
+    pole_kod_form.attrib[KOD_SYSTEMOWY] = "JPK_V7M (2)"
+    pole_kod_form_dekl.attrib[KOD_SYSTEMOWY] = "VAT-7 (22)"
+    pole_kod_form_dekl.attrib[WERSJA_SCHEMY] = "1-0E"
+    pole_wariant_form.text = '22'
 
 def upgradeTo2022(document: Element, helper: NamespaceHelper):
      # czesc ewidencyjna
-    pole_kod_form = helper.findTnsaElementWithTag('KodFormularza', document)
-    if pole_kod_form.attrib[KOD_SYSTEMOWY] ==  "JPK_V7M (1)":
-        pole_kod_form.attrib[KOD_SYSTEMOWY] = "JPK_V7M (2)"
-    elif pole_kod_form.attrib[KOD_SYSTEMOWY] ==  "JPK_V7K (1)":
-        pole_kod_form.attrib[KOD_SYSTEMOWY] = "JPK_V7K (2)"
-    pole_kod_form.attrib[WERSJA_SCHEMY] = "1-0E"
+    kod_form = helper.findTnsaElementWithTag('KodFormularza', document)
+    kod_form_dekl = helper.findTnsaElementWithTag('KodFormularzaDekl', document)
+    wariant_form = helper.findTnsaElementWithTag('WariantFormularzaDekl', document)
 
-    pole_wariant_form =  helper.findTnsaElementWithTag('WariantFormularza', document)
-    pole_wariant_form.text = '2'
+    if kod_form.attrib[KOD_SYSTEMOWY] == "JPK_V7M (1)":
+        upgradeV7M(kod_form, kod_form_dekl, wariant_form)
+    elif kod_form.attrib[KOD_SYSTEMOWY] == "JPK_V7K (1)":
+        upgradeV7K(kod_form, kod_form_dekl, wariant_form)
 
-    pole_kod_form_dekl =  helper.findTnsaElementWithTag('KodFormularzaDekl', document)
-    if pole_kod_form_dekl is not None:
-        pole_kod_form_dekl.attrib[KOD_SYSTEMOWY] = "VAT-7 (22)"
-        pole_kod_form_dekl.attrib[WERSJA_SCHEMY] = "1-0E"
-
-    pole_wariant_form =  helper.findTnsaElementWithTag('WariantFormularzaDekl', document)
-    if pole_wariant_form is not None:
-        pole_wariant_form.text = '22'
+    wariant_form = helper.findTnsaElementWithTag('WariantFormularza', document)
+    wariant_form.text = '2'
