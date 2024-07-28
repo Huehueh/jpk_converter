@@ -22,8 +22,7 @@ def updateOsobaFizyczna(helper: NamespaceHelper, document : Element) -> bool:
     return True
 
 def updateZakupySprzedaze(helper: NamespaceHelper, document : Element, os_fiz : bool):
-    options = {'SprzedazCtrl' : ['LiczbaWierszySprzedazy', 'PodatekNalezny'],
-               'ZakupCtrl' : ['LiczbaWierszyZakupow', 'PodatekNaliczony']}
+    options = {'ZakupCtrl' : ['LiczbaWierszyZakupow', 'PodatekNaliczony'], 'SprzedazCtrl' : ['LiczbaWierszySprzedazy', 'PodatekNalezny']}
 
     section = 'Ewidencja'
     pole_ewidencja = helper.findTnsaElementWithTag(section, document)
@@ -38,6 +37,14 @@ def updateZakupySprzedaze(helper: NamespaceHelper, document : Element, os_fiz : 
             for subelem_title in options[option]:
                 subelem = helper.createTnsaSubElement(subelem_title, os_fiz, new_element)
                 subelem.text = "0"
+
+def addPouczenia(helper: NamespaceHelper, document : Element, os_fiz : bool):
+    section = 'Deklaracja'
+    pole_deklaracja = helper.findTnsaElementWithTag(section, document)
+    pouczenia = 'Pouczenia'
+    pouczenia_value = '1'
+    subelem = helper.createTnsaSubElement(pouczenia, os_fiz, pole_deklaracja)
+    subelem.text = pouczenia_value
 
 def updateVersionIfNeeded(helper: NamespaceHelper, document: Element):
     rok = helper.findTnsaElementWithTag('Rok', document).text
@@ -84,6 +91,7 @@ def convert_and_save_file(input_filename : str, output_filename : str):
 
     os_fiz = updateOsobaFizyczna(helper, root)
     updateZakupySprzedaze(helper, root, os_fiz)
+    addPouczenia(helper, root, os_fiz)
     upgrade_needed = updateVersionIfNeeded(helper, root)
     print('UPGRADE WAS NEEDED', upgrade_needed)
     if upgrade_needed:
